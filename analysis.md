@@ -1,6 +1,6 @@
 # Distributed LLM Cluster on Radxa Dragon-Q6A
 
-This project demonstrates the construction and benchmarking of a high-performance computing cluster using four **Radxa Dragon-Q6A** single-board computers. We utilized the `llama.cpp` RPC (Remote Procedure Call) backend to perform distributed inference of the **Llama-3-8B** model.
+This project demonstrates the construction and benchmarking of a high-performance computing cluster using four **Radxa Dragon-Q6A** single-board computers.
 
 ## Overview
 The primary goal of this project was to overcome the memory limitations of individual SBCs. By pooling the RAM of 4 nodes, we successfully deployed a large language model that would otherwise be impossible to run on a single 8GB board.
@@ -14,7 +14,10 @@ The primary goal of this project was to overcome the memory limitations of indiv
 * **OS:** Radxa OS (Linux)
 * **Inference Engine:** `llama.cpp` with RPC support
 * **Model:** Llama-3-8B-Instruct (Quantization: Q8_0)
+* **Model:** Qwen-2
 * **Monitoring:** `btop`, `tmux`
+
+### Model Llama
 
 ## Performance  analysis
 
@@ -64,6 +67,55 @@ Below are the monitoring logs from our session:
 
 ### Worker Node (Typical)
 ![Worker Node Terminal](./2_нода.jpg)
+*Running `rpc-server` and processing model layers.*
+
+### Model Qwen-2
+
+## Performance  analysis
+
+1. Performance Benchmark: Pushing the Absolute Limits
+The second stage of our project was to run the Qwen-2.5-32B-Instruct model. In Q5_K_M quantization, this model is a behemoth for Edge hardware, requiring approximately 22-24 GB of RAM including context.
+
+The Single Node Impossible: Running a 32B model on a single 8GB Radxa node is technically impossible. Even with aggressive swapping, the system would crash (OOM) before the model could even initialize.
+
+Cluster Capability: By pooling the RAM of all 4 nodes (32GB total), the cluster successfully hosted the model. We achieved a stable generation speed of 0.5 - 0.6 tokens/sec. While slower than the 8B model, this represents a successful deployment of a "reasoning-class" model on low-power hardware.
+
+![Perfomance](./performance_heavy_final.png)
+
+2. RAM Distribution & Maximum Saturation
+Under this extreme load, the Model Parallelism strategy shifted from "efficient distribution" to "maximum saturation".
+
+Master Node (Node 1): Continued to act as the orchestrator. RAM usage slightly increased to ~760 MiB due to the larger KV-cache required for a 32B model, but it still maintained a low footprint to ensure system stability.
+
+Worker Nodes (Nodes 2-4): Each worker reached ~90% of its physical RAM capacity, holding approximately 6.32 - 6.37 GiB of model tensors. This is the "sweet spot" of the cluster, where we utilize nearly all available memory without triggering the Linux OOM killer.
+
+![RAM usage](./ram_heavy_final.png)
+
+3. Network Traffic: The Data Life-Line
+With a model 4x larger than our previous tests, the network interconnect became the absolute life-line of the system.
+
+The Bootstrapping Phase (Heavy Start): The Master node performed a massive cumulative Upload of ~16.3 GB, while workers recorded up to 23.1 GB of Download activity. This reflects the intense process of streaming large model shards across the Gigabit switch.
+
+Inference Phase (Parallel Sync): During generation, the network activity was constant and synchronized across all nodes. Unlike the 8B model, the 32B model requires transferring much larger activation tensors between layers.
+
+Analysis: The data confirms that as model size increases, the cluster moves from being "compute-bound" to "bandwidth-bound". Gigabit Ethernet handled the load, but the 0.6 t/s speed is a direct result of the time taken to sync these large tensors between the Rockchip SoCs.
+
+![Network](./network_heavy_final.png)
+
+4. Computational Efficiency & Thermal Endurance
+CPU & IO Wait: btop telemetry showed that while CPUs were active, there was a noticeable increase in IO Wait (Network wait time). This further proves that the Rockchip CPUs are powerful enough to compute 32B parameters, but are often waiting for the next tensor to arrive via Ethernet.
+
+Thermal Management: Despite the sustained high load and 90% RAM saturation, temperatures were kept between 45°C and 52°C. Our active cooling solution proved vital here; without it, the SoC would have throttled frequencies within minutes, making the 32B inference speed drop significantly.
+
+## Terminal Screenshots
+Below are the monitoring logs from our session:
+
+### Master Node (Node 1)
+![Master Node Terminal](./тяжкіша_модель_1_нода(хост).jpg)
+*Running `llama-cli` and orchestrating the cluster.*
+
+### Worker Node (Typical)
+![Worker Node Terminal](./тяжкіша_модель_2_нода.jpg)
 *Running `rpc-server` and processing model layers.*
 
 
