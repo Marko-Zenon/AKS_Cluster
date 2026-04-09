@@ -62,11 +62,11 @@ Thermal Consistency: By monitoring the sensors (visible in the btop headers), we
 Below are the monitoring logs from our session:
 
 ### Master Node (Node 1)
-![Master Node Terminal](./1_нода(хост).jpg)
+![Master Node Terminal](./1_node(host).jpg)
 *Running `llama-cli` and orchestrating the cluster.*
 
 ### Worker Node (Typical)
-![Worker Node Terminal](./2_нода.jpg)
+![Worker Node Terminal](./2_node.jpg)
 *Running `rpc-server` and processing model layers.*
 
 ### Model Qwen-2
@@ -111,11 +111,11 @@ Thermal Management: Despite the sustained high load and 90% RAM saturation, temp
 Below are the monitoring logs from our session:
 
 ### Master Node (Node 1)
-![Master Node Terminal](./тяжкіша_модель_1_нода(хост).jpg)
+![Master Node Terminal](./heavy_model_1_node(host).jpg)
 *Running `llama-cli` and orchestrating the cluster.*
 
 ### Worker Node (Typical)
-![Worker Node Terminal](./тяжкіша_модель_2_нода.jpg)
+![Worker Node Terminal](./heavy_model_2_node.jpg)
 *Running `rpc-server` and processing model layers.*
 
 
